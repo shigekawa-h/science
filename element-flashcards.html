@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>元素記号フラッシュカード</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', 'Hiragino Sans', sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ─── top bar ─── */
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 18px;
+    padding: 10px 16px;
+    background: #12122a;
+    border-bottom: 1px solid #2a2a4a;
+    flex-shrink: 0;
+  }
+
+  .mode-toggle {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #3a3a6a;
+  }
+
+  .mode-toggle button {
+    padding: 5px 14px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.82rem;
+    background: #1e1e3e;
+    color: #888;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .mode-toggle button.active {
+    background: #e94560;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .setting {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.82rem;
+    color: #8899bb;
+    white-space: nowrap;
+  }
+
+  .setting input {
+    width: 48px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #3a3a6a;
+    background: #1e1e3e;
+    color: #eee;
+    font-size: 0.82rem;
+    text-align: center;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid #3a3a6a;
+    background: #1e1e3e;
+    color: #aac;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .icon-btn:hover { background: #2a2a5a; }
+  .icon-btn.playing { background: #e94560; border-color: #e94560; color: #fff; }
+
+  /* ─── main area ─── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    min-height: 0;
+  }
+
+  /* ─── card ─── */
+  .card {
+    width: 100%;
+    max-width: 520px;
+    background: linear-gradient(145deg, #16213e, #0d2140);
+    border-radius: 24px;
+    border: 1px solid #2a4a7f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 40px 56px;
+    position: relative;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s;
+    min-height: 260px;
+  }
+
+  .card:active { transform: scale(0.985); }
+
+  .card-num {
+    position: absolute;
+    top: 18px;
+    left: 22px;
+    font-size: 0.9rem;
+    color: #3a4a6a;
+    font-weight: bold;
+  }
+
+  .card-progress-text {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    font-size: 0.8rem;
+    color: #3a4a6a;
+  }
+
+  .card-question {
+    font-size: clamp(5rem, 22vw, 10rem);
+    font-weight: 900;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(160, 196, 255, 0.3);
+    text-align: center;
+    letter-spacing: -2px;
+  }
+
+  .card-question.is-ja {
+    font-size: clamp(3rem, 10vw, 5.5rem);
+    letter-spacing: 0.05em;
+    font-weight: 800;
+  }
+
+  .divider {
+    width: 60px;
+    height: 2px;
+    background: #2a4a7f;
+    border-radius: 2px;
+    margin: 22px 0 18px;
+    transition: opacity 0.3s;
+    opacity: 0;
+  }
+
+  .divider.visible { opacity: 1; }
+
+  .card-answer {
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-weight: bold;
+    color: #7ab8ff;
+    opacity: 0;
+    transition: opacity 0.35s;
+    text-align: center;
+    min-height: 1em;
+  }
+
+  .card-answer.is-sym {
+    font-size: clamp(5rem, 20vw, 9rem);
+    font-weight: 900;
+    color: #a0c4ff;
+    letter-spacing: -1px;
+  }
+
+  .card-answer.visible { opacity: 1; }
+
+  /* timer bar at bottom of card */
+  .timer-bar-wrap {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    border-radius: 0 0 24px 24px;
+    overflow: hidden;
+    background: #1a2a4a;
+  }
+
+  .timer-bar {
+    height: 100%;
+    width: 100%;
+    background: #e94560;
+    transform-origin: left;
+    transform: scaleX(1);
+    transition: transform linear;
+  }
+
+  .timer-bar.answer-phase {
+    background: #4caf82;
+  }
+
+  /* ─── progress dots ─── */
+  .dots {
+    display: flex;
+    gap: 6px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 520px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2a3a5a;
+    transition: background 0.3s;
+  }
+
+  .dot.done  { background: #4caf82; }
+  .dot.current { background: #e94560; transform: scale(1.3); }
+
+  /* ─── finished overlay ─── */
+  .finished {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .finished.show { display: flex; }
+
+  .finished h2 { font-size: 1.6rem; color: #a0c4ff; }
+  .finished p  { color: #667; font-size: 0.9rem; }
+
+  .btn-restart {
+    padding: 10px 28px;
+    border-radius: 10px;
+    border: none;
+    background: #e94560;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-restart:hover { background: #c73652; }
+</style>
+</head>
+<body>
+
+<!-- top bar -->
+<div class="topbar">
+  <div class="mode-toggle">
+    <button id="modeSymbol" class="active" onclick="setMode('symbol')">記号 → 名前</button>
+    <button id="modeName"   onclick="setMode('name')">名前 → 記号</button>
+  </div>
+
+  <div class="setting">
+    <span>問題</span>
+    <input type="number" id="qSec" value="3" min="0.5" max="30" step="0.5">
+    <span>秒</span>
+  </div>
+
+  <div class="setting">
+    <span>答え</span>
+    <input type="number" id="aSec" value="2" min="0.5" max="30" step="0.5">
+    <span>秒</span>
+  </div>
+
+  <button class="icon-btn playing" id="playBtn" title="一時停止 / 再生" onclick="togglePlay()">▶</button>
+  <button class="icon-btn" title="シャッフル" onclick="doShuffle()">⇄</button>
+  <button class="icon-btn" title="最初から"   onclick="doRestart()">↺</button>
+</div>
+
+<!-- main -->
+<div class="main">
+
+  <!-- card -->
+  <div class="card" id="card" onclick="onCardClick()">
+    <span class="card-num"  id="cardNum"></span>
+    <span class="card-progress-text" id="cardProg"></span>
+
+    <div class="card-question" id="question"></div>
+    <div class="divider"       id="divider"></div>
+    <div class="card-answer"   id="answer"></div>
+
+    <div class="timer-bar-wrap">
+      <div class="timer-bar" id="timerBar"></div>
+    </div>
+  </div>
+
+  <!-- finished -->
+  <div class="finished" id="finished">
+    <h2>完了！</h2>
+    <p>全 <span id="totalCount"></span> 枚 おつかれさまでした</p>
+    <button class="btn-restart" onclick="doRestart()">もう一度</button>
+  </div>
+
+  <!-- dots -->
+  <div class="dots" id="dots"></div>
+</div>
+
+<script>
+// ─── Data (20 elements) ──────────────────────────────────────────────────────
+const ELEMENTS = [
+  {n:1,  sym:"H",  ja:"水素"},
+  {n:2,  sym:"He", ja:"ヘリウム"},
+  {n:6,  sym:"C",  ja:"炭素"},
+  {n:7,  sym:"N",  ja:"窒素"},
+  {n:8,  sym:"O",  ja:"酸素"},
+  {n:10, sym:"Ne", ja:"ネオン"},
+  {n:14, sym:"Si", ja:"ケイ素"},
+  {n:16, sym:"S",  ja:"硫黄"},
+  {n:17, sym:"Cl", ja:"塩素"},
+  {n:11, sym:"Na", ja:"ナトリウム"},
+  {n:12, sym:"Mg", ja:"マグネシウム"},
+  {n:13, sym:"Al", ja:"アルミニウム"},
+  {n:19, sym:"K",  ja:"カリウム"},
+  {n:20, sym:"Ca", ja:"カルシウム"},
+  {n:26, sym:"Fe", ja:"鉄"},
+  {n:29, sym:"Cu", ja:"銅"},
+  {n:30, sym:"Zn", ja:"亜鉛"},
+  {n:47, sym:"Ag", ja:"銀"},
+  {n:56, sym:"Ba", ja:"バリウム"},
+  {n:79, sym:"Au", ja:"金"},
+];
+
+const CIRC = 1; // using scaleX 0→1
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let mode     = 'symbol';
+let deck     = [];
+let idx      = 0;
+let phase    = 'question'; // 'question' | 'answer'
+let playing  = true;
+let rafId    = null;
+let phaseStart = 0;
+let phaseDur   = 0;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const qSec = () => Math.max(0.3, parseFloat(document.getElementById('qSec').value) || 3);
+const aSec = () => Math.max(0.3, parseFloat(document.getElementById('aSec').value) || 2);
+
+// ─── Build deck & dots ───────────────────────────────────────────────────────
+function buildDots() {
+  const wrap = document.getElementById('dots');
+  wrap.innerHTML = '';
+  deck.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.id = 'dot-' + i;
+    wrap.appendChild(d);
+  });
+}
+
+function updateDots() {
+  deck.forEach((_, i) => {
+    const d = document.getElementById('dot-' + i);
+    if (!d) return;
+    d.className = 'dot' + (i < idx ? ' done' : i === idx ? ' current' : '');
+  });
+}
+
+// ─── Mode ────────────────────────────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeSymbol').classList.toggle('active', m === 'symbol');
+  document.getElementById('modeName').classList.toggle('active',   m === 'name');
+  doRestart();
+}
+
+// ─── Card render ─────────────────────────────────────────────────────────────
+function showQuestion() {
+  phase = 'question';
+  const el = deck[idx];
+
+  const q = document.getElementById('question');
+  const a = document.getElementById('answer');
+  const dv = document.getElementById('divider');
+
+  if (mode === 'symbol') {
+    q.textContent = el.sym;
+    q.className   = 'card-question';
+    a.textContent = el.ja;
+    a.className   = 'card-answer';
+  } else {
+    q.textContent = el.ja;
+    q.className   = 'card-question is-ja';
+    a.textContent = el.sym;
+    a.className   = 'card-answer is-sym';
+  }
+
+  a.classList.remove('visible');
+  dv.classList.remove('visible');
+
+  document.getElementById('cardNum').textContent  = el.n;
+  document.getElementById('cardProg').textContent = `${idx + 1} / ${deck.length}`;
+  updateDots();
+
+  if (playing) startPhase(qSec() * 1000, false);
+}
+
+function revealAnswer() {
+  phase = 'answer';
+  document.getElementById('answer').classList.add('visible');
+  document.getElementById('divider').classList.add('visible');
+
+  if (playing) startPhase(aSec() * 1000, true);
+}
+
+// ─── Animation loop ──────────────────────────────────────────────────────────
+function startPhase(dur, isAnswer) {
+  cancelAnimationFrame(rafId);
+  phaseDur   = dur;
+  phaseStart = performance.now();
+
+  const bar = document.getElementById('timerBar');
+  bar.style.transition = 'none';
+  bar.style.transform  = 'scaleX(1)';
+  bar.className = 'timer-bar' + (isAnswer ? ' answer-phase' : '');
+
+  function tick(now) {
+    const elapsed = now - phaseStart;
+    const frac    = Math.min(elapsed / phaseDur, 1);
+    bar.style.transition = 'none';
+    bar.style.transform  = `scaleX(${1 - frac})`;
+
+    if (frac < 1) {
+      rafId = requestAnimationFrame(tick);
+    } else {
+      if (!isAnswer) revealAnswer();
+      else           advance();
+    }
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+function stopPhase() {
+  cancelAnimationFrame(rafId);
+  const bar = document.getElementById('timerBar');
+  bar.style.transform = 'scaleX(0)';
+}
+
+// ─── Advance ─────────────────────────────────────────────────────────────────
+function advance() {
+  if (idx + 1 >= deck.length) {
+    showFinished();
+    return;
+  }
+  idx++;
+  showQuestion();
+}
+
+function showFinished() {
+  stopPhase();
+  document.getElementById('card').style.display     = 'none';
+  document.getElementById('finished').classList.add('show');
+  document.getElementById('totalCount').textContent = deck.length;
+  // mark all dots done
+  deck.forEach((_, i) => {
+    const d = document.getElementById('dot-' + i);
+    if (d) d.className = 'dot done';
+  });
+}
+
+// ─── Play / pause ─────────────────────────────────────────────────────────────
+function togglePlay() {
+  playing = !playing;
+  const btn = document.getElementById('playBtn');
+  btn.textContent = playing ? '▶' : '⏸';
+  btn.classList.toggle('playing', playing);
+
+  if (playing) {
+    // resume current phase
+    if (phase === 'question') startPhase(qSec() * 1000, false);
+    else                       startPhase(aSec() * 1000, true);
+  } else {
+    stopPhase();
+  }
+}
+
+// ─── Card click ──────────────────────────────────────────────────────────────
+function onCardClick() {
+  if (phase === 'question') {
+    cancelAnimationFrame(rafId);
+    revealAnswer();
+  } else {
+    cancelAnimationFrame(rafId);
+    advance();
+  }
+}
+
+// ─── Controls ────────────────────────────────────────────────────────────────
+function doShuffle() {
+  deck = [...deck].sort(() => Math.random() - 0.5);
+  idx  = 0;
+  showCard();
+}
+
+function doRestart() {
+  deck = [...ELEMENTS];
+  idx  = 0;
+  showCard();
+}
+
+function showCard() {
+  document.getElementById('card').style.display     = '';
+  document.getElementById('finished').classList.remove('show');
+  buildDots();
+  showQuestion();
+}
+
+// ─── Keyboard ────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); onCardClick(); }
+  if (e.key === 'p' || e.key === 'P')          { togglePlay(); }
+});
+
+// ─── Boot ────────────────────────────────────────────────────────────────────
+doRestart();
+</script>
+</body>
+</html>
