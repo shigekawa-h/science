@@ -396,6 +396,14 @@ function showQuestion() {
   const a = document.getElementById('answer');
   const dv = document.getElementById('divider');
 
+  // ① transition を切って即座に opacity:0 に（テキスト書換前に非表示）
+  a.style.transition  = 'none';
+  a.style.opacity     = '0';
+  dv.style.transition = 'none';
+  dv.style.opacity    = '0';
+  void a.offsetWidth; // リフロー強制
+
+  // ② テキスト・クラス更新（この時点では invisible）
   if (mode === 'symbol') {
     q.textContent = el.sym;
     q.className   = 'card-question';
@@ -410,6 +418,14 @@ function showQuestion() {
 
   a.classList.remove('visible');
   dv.classList.remove('visible');
+
+  // ③ 次フレームでインラインスタイル解除（revealAnswer のフェードインが有効に）
+  requestAnimationFrame(() => {
+    a.style.transition  = '';
+    a.style.opacity     = '';
+    dv.style.transition = '';
+    dv.style.opacity    = '';
+  });
 
   document.getElementById('cardNum').textContent  = el.n;
   document.getElementById('cardProg').textContent = `${idx + 1} / ${deck.length}`;
