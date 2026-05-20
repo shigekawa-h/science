@@ -92,6 +92,40 @@
   .icon-btn:hover { background: #2a2a5a; }
   .icon-btn.playing { background: #e94560; border-color: #e94560; color: #fff; }
 
+  /* ─── preset time buttons ─── */
+  .preset-group {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #3a3a6a;
+  }
+
+  .preset-label {
+    padding: 0 8px;
+    background: #12122a;
+    color: #8899bb;
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #3a3a6a;
+    white-space: nowrap;
+  }
+
+  .preset-btn {
+    padding: 5px 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    background: #1e1e3e;
+    color: #888;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .preset-btn + .preset-btn { border-left: 1px solid #3a3a6a; }
+  .preset-btn:hover { background: #2a2a5a; color: #ccd; }
+  .preset-btn.active { background: #e94560; color: #fff; font-weight: bold; }
+
   /* ─── main area ─── */
   .main {
     flex: 1;
@@ -235,33 +269,15 @@
   .dot.done  { background: #4caf82; }
   .dot.current { background: #e94560; transform: scale(1.3); }
 
-  /* ─── finished overlay ─── */
-  .finished {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    text-align: center;
+  /* ─── loop badge ─── */
+  .loop-badge {
+    font-size: 0.7rem;
+    color: #4caf82;
+    background: #0d2a1e;
+    border: 1px solid #2a6a4a;
+    border-radius: 20px;
+    padding: 2px 8px;
   }
-
-  .finished.show { display: flex; }
-
-  .finished h2 { font-size: 1.6rem; color: #a0c4ff; }
-  .finished p  { color: #667; font-size: 0.9rem; }
-
-  .btn-restart {
-    padding: 10px 28px;
-    border-radius: 10px;
-    border: none;
-    background: #e94560;
-    color: #fff;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .btn-restart:hover { background: #c73652; }
 </style>
 </head>
 <body>
@@ -273,18 +289,21 @@
     <button id="modeName"   onclick="setMode('name')">名前 → 記号</button>
   </div>
 
-  <div class="setting">
-    <span>問題</span>
-    <input type="number" id="qSec" value="3" min="0.5" max="30" step="0.5">
-    <span>秒</span>
+  <div class="preset-group">
+    <span class="preset-label">問題</span>
+    <button class="preset-btn" id="qBtn05" onclick="setQSec(0.5)">0.5秒</button>
+    <button class="preset-btn" id="qBtn1"  onclick="setQSec(1)">1秒</button>
+    <button class="preset-btn active" id="qBtn3"  onclick="setQSec(3)">3秒</button>
   </div>
 
-  <div class="setting">
-    <span>答え</span>
-    <input type="number" id="aSec" value="2" min="0.5" max="30" step="0.5">
-    <span>秒</span>
+  <div class="preset-group">
+    <span class="preset-label">答え</span>
+    <button class="preset-btn" id="aBtn05" onclick="setASec(0.5)">0.5秒</button>
+    <button class="preset-btn" id="aBtn1"  onclick="setASec(1)">1秒</button>
+    <button class="preset-btn active" id="aBtn3"  onclick="setASec(3)">3秒</button>
   </div>
 
+  <span class="loop-badge">∞ エンドレス</span>
   <button class="icon-btn playing" id="playBtn" title="一時停止 / 再生" onclick="togglePlay()">▶</button>
   <button class="icon-btn" title="シャッフル" onclick="doShuffle()">⇄</button>
   <button class="icon-btn" title="最初から"   onclick="doRestart()">↺</button>
@@ -305,13 +324,6 @@
     <div class="timer-bar-wrap">
       <div class="timer-bar" id="timerBar"></div>
     </div>
-  </div>
-
-  <!-- finished -->
-  <div class="finished" id="finished">
-    <h2>完了！</h2>
-    <p>全 <span id="totalCount"></span> 枚 おつかれさまでした</p>
-    <button class="btn-restart" onclick="doRestart()">もう一度</button>
   </div>
 
   <!-- dots -->
@@ -343,8 +355,6 @@ const ELEMENTS = [
   {n:79, sym:"Au", ja:"金"},
 ];
 
-const CIRC = 1; // using scaleX 0→1
-
 // ─── State ───────────────────────────────────────────────────────────────────
 let mode     = 'symbol';
 let deck     = [];
@@ -354,10 +364,26 @@ let playing  = true;
 let rafId    = null;
 let phaseStart = 0;
 let phaseDur   = 0;
+let qSecVal  = 3;
+let aSecVal  = 3;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-const qSec = () => Math.max(0.3, parseFloat(document.getElementById('qSec').value) || 3);
-const aSec = () => Math.max(0.3, parseFloat(document.getElementById('aSec').value) || 2);
+const qSec = () => qSecVal;
+const aSec = () => aSecVal;
+
+function setQSec(v) {
+  qSecVal = v;
+  document.getElementById('qBtn05').classList.toggle('active', v === 0.5);
+  document.getElementById('qBtn1').classList.toggle('active',  v === 1);
+  document.getElementById('qBtn3').classList.toggle('active',  v === 3);
+}
+
+function setASec(v) {
+  aSecVal = v;
+  document.getElementById('aBtn05').classList.toggle('active', v === 0.5);
+  document.getElementById('aBtn1').classList.toggle('active',  v === 1);
+  document.getElementById('aBtn3').classList.toggle('active',  v === 3);
+}
 
 // ─── Build deck & dots ───────────────────────────────────────────────────────
 function buildDots() {
@@ -475,26 +501,10 @@ function stopPhase() {
   bar.style.transform = 'scaleX(0)';
 }
 
-// ─── Advance ─────────────────────────────────────────────────────────────────
+// ─── Advance (endless loop) ───────────────────────────────────────────────────
 function advance() {
-  if (idx + 1 >= deck.length) {
-    showFinished();
-    return;
-  }
-  idx++;
+  idx = (idx + 1) % deck.length; // 最後の次は先頭へ
   showQuestion();
-}
-
-function showFinished() {
-  stopPhase();
-  document.getElementById('card').style.display     = 'none';
-  document.getElementById('finished').classList.add('show');
-  document.getElementById('totalCount').textContent = deck.length;
-  // mark all dots done
-  deck.forEach((_, i) => {
-    const d = document.getElementById('dot-' + i);
-    if (d) d.className = 'dot done';
-  });
 }
 
 // ─── Play / pause ─────────────────────────────────────────────────────────────
@@ -538,8 +548,6 @@ function doRestart() {
 }
 
 function showCard() {
-  document.getElementById('card').style.display     = '';
-  document.getElementById('finished').classList.remove('show');
   buildDots();
   showQuestion();
 }
