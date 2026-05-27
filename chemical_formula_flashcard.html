@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>化学式フラッシュカード</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', 'Hiragino Sans', sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ─── top bar ─── */
+  .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 18px;
+    padding: 10px 16px;
+    background: #12122a;
+    border-bottom: 1px solid #2a2a4a;
+    flex-shrink: 0;
+  }
+
+  .mode-toggle {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #3a3a6a;
+  }
+
+  .mode-toggle button {
+    padding: 5px 14px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.82rem;
+    background: #1e1e3e;
+    color: #888;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .mode-toggle button.active {
+    background: #e94560;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid #3a3a6a;
+    background: #1e1e3e;
+    color: #aac;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .icon-btn:hover { background: #2a2a5a; }
+  .icon-btn.playing { background: #e94560; border-color: #e94560; color: #fff; }
+
+  /* ─── preset time buttons ─── */
+  .preset-group {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #3a3a6a;
+  }
+
+  .preset-label {
+    padding: 0 8px;
+    background: #12122a;
+    color: #8899bb;
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #3a3a6a;
+    white-space: nowrap;
+  }
+
+  .preset-btn {
+    padding: 5px 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    background: #1e1e3e;
+    color: #888;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .preset-btn + .preset-btn { border-left: 1px solid #3a3a6a; }
+  .preset-btn:hover { background: #2a2a5a; color: #ccd; }
+  .preset-btn.active { background: #e94560; color: #fff; font-weight: bold; }
+
+  /* ─── main area ─── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    min-height: 0;
+  }
+
+  /* ─── card ─── */
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: linear-gradient(145deg, #16213e, #0d2140);
+    border-radius: 24px;
+    border: 1px solid #2a4a7f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 40px 56px;
+    position: relative;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s;
+    min-height: 260px;
+  }
+
+  .card:active { transform: scale(0.985); }
+
+  .card-num {
+    position: absolute;
+    top: 18px;
+    left: 22px;
+    font-size: 0.9rem;
+    color: #3a4a6a;
+    font-weight: bold;
+  }
+
+  .card-progress-text {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    font-size: 0.8rem;
+    color: #3a4a6a;
+  }
+
+  .card-question {
+    font-size: clamp(4rem, 16vw, 8rem);
+    font-weight: 900;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(160, 196, 255, 0.3);
+    text-align: center;
+    letter-spacing: -1px;
+  }
+
+  .card-question.is-ja {
+    font-size: clamp(2.6rem, 8.5vw, 4.8rem);
+    letter-spacing: 0.05em;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+
+  /* 下付き数字（化学式用） */
+  .card-question sub,
+  .card-answer sub {
+    font-size: 0.55em;
+    vertical-align: baseline;
+    position: relative;
+    bottom: -0.15em;
+    font-weight: 800;
+    margin-left: 0.02em;
+    color: #b8d4ff;
+  }
+
+  .card-answer.is-formula sub { color: #a0c4ff; }
+
+  .divider {
+    width: 60px;
+    height: 2px;
+    background: #2a4a7f;
+    border-radius: 2px;
+    margin: 22px 0 18px;
+    transition: opacity 0.3s;
+    opacity: 0;
+  }
+
+  .divider.visible { opacity: 1; }
+
+  .card-answer {
+    font-size: clamp(2.2rem, 7vw, 4rem);
+    font-weight: bold;
+    color: #7ab8ff;
+    opacity: 0;
+    transition: opacity 0.35s;
+    text-align: center;
+    min-height: 1em;
+    line-height: 1.15;
+  }
+
+  .card-answer.is-formula {
+    font-size: clamp(4rem, 14vw, 7.5rem);
+    font-weight: 900;
+    color: #a0c4ff;
+    letter-spacing: -1px;
+  }
+
+  .card-answer.visible { opacity: 1; }
+
+  /* timer bar at bottom of card */
+  .timer-bar-wrap {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    border-radius: 0 0 24px 24px;
+    overflow: hidden;
+    background: #1a2a4a;
+  }
+
+  .timer-bar {
+    height: 100%;
+    width: 100%;
+    background: #e94560;
+    transform-origin: left;
+    transform: scaleX(1);
+    transition: transform linear;
+  }
+
+  .timer-bar.answer-phase {
+    background: #4caf82;
+  }
+
+  /* ─── progress dots ─── */
+  .dots {
+    display: flex;
+    gap: 6px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 560px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2a3a5a;
+    transition: background 0.3s;
+  }
+
+  .dot.done  { background: #4caf82; }
+  .dot.current { background: #e94560; transform: scale(1.3); }
+
+  /* ─── loop badge ─── */
+  .loop-badge {
+    font-size: 0.7rem;
+    color: #4caf82;
+    background: #0d2a1e;
+    border: 1px solid #2a6a4a;
+    border-radius: 20px;
+    padding: 2px 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- top bar -->
+<div class="topbar">
+  <div class="mode-toggle">
+    <button id="modeSymbol" class="active" onclick="setMode('symbol')">化学式 → 名前</button>
+    <button id="modeName"   onclick="setMode('name')">名前 → 化学式</button>
+  </div>
+
+  <div class="preset-group">
+    <span class="preset-label">問題</span>
+    <button class="preset-btn" id="qBtn05" onclick="setQSec(0.5)">0.5秒</button>
+    <button class="preset-btn" id="qBtn1"  onclick="setQSec(1)">1秒</button>
+    <button class="preset-btn active" id="qBtn3"  onclick="setQSec(3)">3秒</button>
+  </div>
+
+  <div class="preset-group">
+    <span class="preset-label">答え</span>
+    <button class="preset-btn" id="aBtn05" onclick="setASec(0.5)">0.5秒</button>
+    <button class="preset-btn" id="aBtn1"  onclick="setASec(1)">1秒</button>
+    <button class="preset-btn active" id="aBtn3"  onclick="setASec(3)">3秒</button>
+  </div>
+
+  <span class="loop-badge">∞ エンドレス</span>
+  <button class="icon-btn playing" id="playBtn" title="一時停止 / 再生" onclick="togglePlay()">▶</button>
+  <button class="icon-btn" title="シャッフル" onclick="doShuffle()">⇄</button>
+  <button class="icon-btn" title="最初から"   onclick="doRestart()">↺</button>
+</div>
+
+<!-- main -->
+<div class="main">
+
+  <!-- card -->
+  <div class="card" id="card" onclick="onCardClick()">
+    <span class="card-num"  id="cardNum"></span>
+    <span class="card-progress-text" id="cardProg"></span>
+
+    <div class="card-question" id="question"></div>
+    <div class="divider"       id="divider"></div>
+    <div class="card-answer"   id="answer"></div>
+
+    <div class="timer-bar-wrap">
+      <div class="timer-bar" id="timerBar"></div>
+    </div>
+  </div>
+
+  <!-- dots -->
+  <div class="dots" id="dots"></div>
+</div>
+
+<script>
+// ─── Data (化学式) ──────────────────────────────────────────────────
+// formula は素のテキスト（H2O）、display は表示用（H<sub>2</sub>O）
+const FORMULAS = [
+  {formula:"H2",     ja:"水素"},
+  {formula:"O2",     ja:"酸素"},
+  {formula:"N2",     ja:"窒素"},
+  {formula:"H2O",    ja:"水"},
+  {formula:"CO2",    ja:"二酸化炭素"},
+  {formula:"NH3",    ja:"アンモニア"},
+  {formula:"CuO",    ja:"酸化銅"},
+  {formula:"Ag2O",   ja:"酸化銀"},
+  {formula:"Na2CO3", ja:"炭酸ナトリウム"},
+  {formula:"NaCl",   ja:"塩化ナトリウム"},
+  {formula:"NaHCO3", ja:"炭酸水素ナトリウム"},
+];
+
+// 化学式の数字を自動で <sub> に変換
+// 例: "Na2CO3" → "Na<sub>2</sub>CO<sub>3</sub>"
+function formatFormula(s) {
+  return s.replace(/(\d+)/g, '<sub>$1</sub>');
+}
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let mode     = 'symbol'; // 'symbol' = 化学式→名前, 'name' = 名前→化学式
+let deck     = [];
+let idx      = 0;
+let phase    = 'question';
+let playing  = true;
+let rafId    = null;
+let phaseStart = 0;
+let phaseDur   = 0;
+let qSecVal  = 3;
+let aSecVal  = 3;
+
+const qSec = () => qSecVal;
+const aSec = () => aSecVal;
+
+function setQSec(v) {
+  qSecVal = v;
+  document.getElementById('qBtn05').classList.toggle('active', v === 0.5);
+  document.getElementById('qBtn1').classList.toggle('active',  v === 1);
+  document.getElementById('qBtn3').classList.toggle('active',  v === 3);
+}
+
+function setASec(v) {
+  aSecVal = v;
+  document.getElementById('aBtn05').classList.toggle('active', v === 0.5);
+  document.getElementById('aBtn1').classList.toggle('active',  v === 1);
+  document.getElementById('aBtn3').classList.toggle('active',  v === 3);
+}
+
+function buildDots() {
+  const wrap = document.getElementById('dots');
+  wrap.innerHTML = '';
+  deck.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.id = 'dot-' + i;
+    wrap.appendChild(d);
+  });
+}
+
+function updateDots() {
+  deck.forEach((_, i) => {
+    const d = document.getElementById('dot-' + i);
+    if (!d) return;
+    d.className = 'dot' + (i < idx ? ' done' : i === idx ? ' current' : '');
+  });
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeSymbol').classList.toggle('active', m === 'symbol');
+  document.getElementById('modeName').classList.toggle('active',   m === 'name');
+  doRestart();
+}
+
+function showQuestion() {
+  phase = 'question';
+  const el = deck[idx];
+
+  const q = document.getElementById('question');
+  const a = document.getElementById('answer');
+  const dv = document.getElementById('divider');
+
+  // 答えを即座に非表示
+  a.style.transition  = 'none';
+  a.style.opacity     = '0';
+  dv.style.transition = 'none';
+  dv.style.opacity    = '0';
+  void a.offsetWidth;
+
+  if (mode === 'symbol') {
+    // 化学式 → 名前
+    q.innerHTML = formatFormula(el.formula);
+    q.className = 'card-question';
+    a.textContent = el.ja;
+    a.className   = 'card-answer';
+  } else {
+    // 名前 → 化学式
+    q.textContent = el.ja;
+    q.className   = 'card-question is-ja';
+    a.innerHTML   = formatFormula(el.formula);
+    a.className   = 'card-answer is-formula';
+  }
+
+  a.classList.remove('visible');
+  dv.classList.remove('visible');
+
+  requestAnimationFrame(() => {
+    a.style.transition  = '';
+    a.style.opacity     = '';
+    dv.style.transition = '';
+    dv.style.opacity    = '';
+  });
+
+  document.getElementById('cardNum').textContent  = idx + 1;
+  document.getElementById('cardProg').textContent = `${idx + 1} / ${deck.length}`;
+  updateDots();
+
+  if (playing) startPhase(qSec() * 1000, false);
+}
+
+function revealAnswer() {
+  phase = 'answer';
+  document.getElementById('answer').classList.add('visible');
+  document.getElementById('divider').classList.add('visible');
+
+  if (playing) startPhase(aSec() * 1000, true);
+}
+
+function startPhase(dur, isAnswer) {
+  cancelAnimationFrame(rafId);
+  phaseDur   = dur;
+  phaseStart = performance.now();
+
+  const bar = document.getElementById('timerBar');
+  bar.style.transition = 'none';
+  bar.style.transform  = 'scaleX(1)';
+  bar.className = 'timer-bar' + (isAnswer ? ' answer-phase' : '');
+
+  function tick(now) {
+    const elapsed = now - phaseStart;
+    const frac    = Math.min(elapsed / phaseDur, 1);
+    bar.style.transition = 'none';
+    bar.style.transform  = `scaleX(${1 - frac})`;
+
+    if (frac < 1) {
+      rafId = requestAnimationFrame(tick);
+    } else {
+      if (!isAnswer) revealAnswer();
+      else           advance();
+    }
+  }
+  rafId = requestAnimationFrame(tick);
+}
+
+function stopPhase() {
+  cancelAnimationFrame(rafId);
+  const bar = document.getElementById('timerBar');
+  bar.style.transform = 'scaleX(0)';
+}
+
+function advance() {
+  idx = (idx + 1) % deck.length;
+  showQuestion();
+}
+
+function togglePlay() {
+  playing = !playing;
+  const btn = document.getElementById('playBtn');
+  btn.textContent = playing ? '▶' : '⏸';
+  btn.classList.toggle('playing', playing);
+
+  if (playing) {
+    if (phase === 'question') startPhase(qSec() * 1000, false);
+    else                       startPhase(aSec() * 1000, true);
+  } else {
+    stopPhase();
+  }
+}
+
+function onCardClick() {
+  if (phase === 'question') {
+    cancelAnimationFrame(rafId);
+    revealAnswer();
+  } else {
+    cancelAnimationFrame(rafId);
+    advance();
+  }
+}
+
+function doShuffle() {
+  deck = [...deck].sort(() => Math.random() - 0.5);
+  idx  = 0;
+  showCard();
+}
+
+function doRestart() {
+  deck = [...FORMULAS];
+  idx  = 0;
+  showCard();
+}
+
+function showCard() {
+  buildDots();
+  showQuestion();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); onCardClick(); }
+  if (e.key === 'p' || e.key === 'P')          { togglePlay(); }
+});
+
+doRestart();
+</script>
+</body>
+</html>
