@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>比例＝比が一定（割合棒グラフ）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#21303b;
+    --sub:#5a6b76;
+    --cu:#D85A30;      /* 銅 */
+    --cu-dark:#8a3315;
+    --ox:#3C8FD8;      /* 酸素 */
+    --ox-dark:#0C447C;
+    --paper:#F6F2E9;
+    --line:rgba(33,48,59,.18);
+    --accent:#1D9E75;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"Zen Kaku Gothic New",sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    height:100vh;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  header{
+    padding:3vh 5vw 0;
+    flex:0 0 auto;
+  }
+  .eyebrow{
+    font-size:clamp(15px,2.2vh,26px);
+    color:var(--accent);
+    font-weight:700;
+    letter-spacing:.04em;
+    margin-bottom:.4vh;
+  }
+  h1{
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-size:clamp(26px,5.2vh,60px);
+    font-weight:700;
+    line-height:1.15;
+  }
+  .stage{
+    flex:1 1 auto;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap:clamp(28px,7vw,120px);
+    padding:2vh 5vw 1vh;
+    min-height:0;
+  }
+  .col{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:1.6vh;
+    opacity:0;
+    transform:translateY(18px);
+    transition:opacity .5s ease, transform .5s ease;
+  }
+  .col.show{opacity:1;transform:none;}
+  .bar{
+    width:clamp(90px,12vw,160px);
+    display:flex;
+    flex-direction:column-reverse;
+    border-radius:10px;
+    overflow:hidden;
+    border:2px solid rgba(33,48,59,.25);
+  }
+  .seg{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-weight:700;
+    font-size:clamp(15px,2.4vh,30px);
+  }
+  .seg-cu{background:var(--cu);color:#fff;}
+  .seg-ox{background:var(--ox);color:#fff;}
+  .label{
+    text-align:center;
+    font-size:clamp(15px,2.6vh,32px);
+    font-weight:700;
+    line-height:1.5;
+    color:var(--ink);
+  }
+  .label .ox-t{color:var(--ox-dark);}
+  .label .cu-t{color:var(--cu-dark);}
+  .ghost .bar#bar3-ghost{
+    height:clamp(280px,52vh,560px);
+    border:3px dashed rgba(33,48,59,.3);
+    background:rgba(33,48,59,.04);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:1vh;
+    color:var(--sub);
+  }
+  .ghost .q{
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-size:clamp(20px,3.4vh,40px);
+    font-weight:700;
+  }
+  .ghost .qmark{font-size:clamp(40px,7vh,90px);font-weight:900;line-height:1;}
+  footer{
+    flex:0 0 auto;
+    padding:1.5vh 5vw 3vh;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:2vw;
+  }
+  .prompt{
+    font-family:"Zen Maru Gothic",sans-serif;
+    font-size:clamp(18px,3.4vh,42px);
+    font-weight:700;
+    color:var(--ink);
+    opacity:0;
+    transform:translateY(10px);
+    transition:opacity .5s ease,transform .5s ease;
+  }
+  .prompt.show{opacity:1;transform:none;}
+  .prompt .em{color:var(--accent);}
+  .nav{
+    display:flex;
+    align-items:center;
+    gap:1.2vw;
+    flex:0 0 auto;
+  }
+  .dots{display:flex;gap:10px;}
+  .dot{
+    width:clamp(10px,1.4vh,16px);
+    height:clamp(10px,1.4vh,16px);
+    border-radius:50%;
+    background:var(--line);
+    transition:background .3s;
+  }
+  .dot.on{background:var(--accent);}
+  button{
+    font-family:"Zen Kaku Gothic New",sans-serif;
+    font-size:clamp(14px,2.2vh,24px);
+    font-weight:700;
+    color:var(--ink);
+    background:#fff;
+    border:2px solid var(--line);
+    border-radius:999px;
+    padding:.6em 1.4em;
+    cursor:pointer;
+    transition:background .2s,transform .1s;
+  }
+  button:hover{background:#fdfcf8;}
+  button:active{transform:scale(.97);}
+  button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+  .hint{
+    position:fixed;
+    bottom:1vh;left:50%;transform:translateX(-50%);
+    font-size:13px;color:var(--sub);opacity:.7;
+  }
+  @media (prefers-reduced-motion:reduce){
+    .col,.prompt{transition:none;}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">考察　／　比例 ＝ 比が一定</div>
+    <h1>長さ（量）はちがう。同じところは？</h1>
+  </header>
+
+  <main class="stage">
+    <div class="col" data-step="1">
+      <div class="bar" style="height:clamp(70px,13vh,140px);">
+        <div class="seg seg-cu" style="height:80%;">銅</div>
+        <div class="seg seg-ox" style="height:20%;">酸素</div>
+      </div>
+      <div class="label"><span class="cu-t">銅 0.40 g</span><br><span class="ox-t">酸素 0.10 g</span></div>
+    </div>
+
+    <div class="col" data-step="2">
+      <div class="bar" style="height:clamp(140px,26vh,280px);">
+        <div class="seg seg-cu" style="height:79%;">銅</div>
+        <div class="seg seg-ox" style="height:21%;">酸素</div>
+      </div>
+      <div class="label"><span class="cu-t">銅 0.80 g</span><br><span class="ox-t">酸素 0.21 g</span></div>
+    </div>
+
+    <div class="col ghost" data-step="3" id="col3">
+      <div class="bar" id="bar3-ghost">
+        <div class="qmark">？</div>
+        <div class="q">どうなる？</div>
+      </div>
+      <div class="bar" id="bar3-real" style="height:clamp(210px,39vh,420px);display:none;">
+        <div class="seg seg-cu" style="height:80%;">銅</div>
+        <div class="seg seg-ox" style="height:20%;">酸素</div>
+      </div>
+      <div class="label" id="label3"><span class="cu-t">銅 1.20 g</span><br><span class="ox-t">酸素 ？ g</span></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="prompt" data-prompt="2">同じ「<span class="em">割合</span>」だ ／ 片方を<span class="em">のばした</span>だけ</div>
+    <div class="prompt" data-prompt="3">予想してから、たしかめよう</div>
+    <div class="prompt" data-prompt="4">やっぱり<span class="em">同じ割合</span>　＝　<span class="em">比は一定</span></div>
+    <div class="nav">
+      <div class="dots">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+      <button id="back" aria-label="前へ">◀</button>
+      <button id="next" aria-label="次へ">次へ ▶</button>
+    </div>
+  </footer>
+
+  <div class="hint">クリック / → キー で進む　・　← キーで戻る</div>
+
+<script>
+  const cols = [...document.querySelectorAll('.col')];
+  const prompts = [...document.querySelectorAll('.prompt')];
+  const dots = [...document.querySelectorAll('.dot')];
+  let step = 0; // 0=なし,1,2,3,4
+  const max = 4;
+
+  const ghost = document.getElementById('bar3-ghost');
+  const real  = document.getElementById('bar3-real');
+  const label3 = document.getElementById('label3');
+  const col3 = document.getElementById('col3');
+
+  function render(){
+    cols.forEach(c=>{
+      c.classList.toggle('show', Number(c.dataset.step) <= step && step>=1);
+    });
+    prompts.forEach(p=>{
+      p.classList.toggle('show', Number(p.dataset.prompt) === step);
+    });
+    // 3本目: step4で予想ブランク→実測棒へ
+    if(step>=4){
+      ghost.style.display='none';
+      real.style.display='flex';
+      col3.classList.remove('ghost');
+      label3.innerHTML='<span class="cu-t">銅 1.20 g</span><br><span class="ox-t">酸素 0.30 g</span>';
+    }else{
+      ghost.style.display='flex';
+      real.style.display='none';
+      col3.classList.add('ghost');
+      label3.innerHTML='<span class="cu-t">銅 1.20 g</span><br><span class="ox-t">酸素 ？ g</span>';
+    }
+    // ドットは4分割表示
+    dots.forEach((d,i)=> d.classList.toggle('on', i < step));
+  }
+  function next(){ if(step<max){step++;render();} }
+  function back(){ if(step>0){step--;render();} }
+
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('back').addEventListener('click', back);
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='Enter'){e.preventDefault();next();}
+    if(e.key==='ArrowLeft'){e.preventDefault();back();}
+  });
+  document.querySelector('.stage').addEventListener('click', next);
+  render();
+</script>
+</body>
+</html>
