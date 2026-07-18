@@ -1,0 +1,72 @@
+</div>
+
+<div id="hud">
+  <button id="prev" aria-label="前へ">◀</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" aria-label="次へ">▶</button>
+</div>
+
+<input type="file" id="picker" accept="image/*" style="display:none">
+
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  let cur = 0;
+
+  function show(n){
+    cur = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s,i)=> s.classList.toggle('current', i===cur));
+    counter.textContent = (cur+1) + ' / ' + slides.length;
+  }
+
+  /* 1280x720 のステージを画面に合わせて拡縮 */
+  function fit(){
+    const s = Math.min(window.innerWidth/1280, window.innerHeight/720);
+    document.getElementById('stage').style.transform =
+      'translate(-50%,-50%) scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+
+  /* キー操作: ←→/Space/PageUp/PageDown/Home/End */
+  window.addEventListener('keydown', e=>{
+    if(['ArrowRight',' ','PageDown','Enter'].includes(e.key)){ e.preventDefault(); show(cur+1); }
+    else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); show(cur-1); }
+    else if(e.key==='Home'){ show(0); }
+    else if(e.key==='End'){ show(slides.length-1); }
+  });
+  document.getElementById('prev').onclick = ()=> show(cur-1);
+  document.getElementById('next').onclick = ()=> show(cur+1);
+
+  /* タッチ操作(スワイプ) */
+  let tx = null;
+  window.addEventListener('touchstart', e=>{ tx = e.touches[0].clientX; }, {passive:true});
+  window.addEventListener('touchend', e=>{
+    if(tx===null) return;
+    const dx = e.changedTouches[0].clientX - tx;
+    if(dx < -60) show(cur+1);
+    else if(dx > 60) show(cur-1);
+    tx = null;
+  }, {passive:true});
+
+  /* 画像スロット: クリックで端末内の画像を選ぶ(HTMLには画像を含めない)
+     ※選んだ画像はこの表示中だけ有効。再読み込みで消える。 */
+  const picker = document.getElementById('picker');
+  let target = null;
+  document.querySelectorAll('.img-slot').forEach(slot=>{
+    slot.addEventListener('click', ()=>{ target = slot; picker.value=''; picker.click(); });
+  });
+  picker.addEventListener('change', ()=>{
+    const f = picker.files[0];
+    if(!f || !target) return;
+    const r = new FileReader();
+    r.onload = ()=>{ target.innerHTML = '<img src="'+ r.result +'" alt="">'; };
+    r.readAsDataURL(f);
+  });
+
+  fit();
+  show(0);
+})();
+</script>
+</body>
+</html>
